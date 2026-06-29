@@ -6,14 +6,14 @@ This is an experiment to have the LLM do its own research.
 
 To set up a new experiment, work with the user to:
 
-1. **Agree on a run tag**: propose a tag based on today's date (e.g. `mar5`). The branch `autoresearch/<tag>` must not already exist — this is a fresh run.
-2. **Create the branch**: `git checkout -b autoresearch/<tag>` from current master.
+1. **Agree on a run tag**: propose a tag based on today's date (e.g. `mar5`). The branch `autoscale/<tag>` must not already exist — this is a fresh run.
+2. **Create the branch**: `git checkout -b autoscale/<tag>` from current master.
 3. **Read the in-scope files**: The repo is small. Read these files for full context:
    - `README.md` — repository context.
    - `prepare.py` — fixed constants, data prep, tokenizer, dataloader, evaluation. Do not modify.
    - `train.py` — the file you modify. Model architecture, optimizer, training loop.
    - `metric.md` — monitoring metric notebook, if it already exists. It records custom metrics added to `train.py`, their definitions, and what was learned from them.
-4. **Verify data exists**: Check that `~/.cache/autoresearch/` contains data shards and a tokenizer. If not, tell the human to run `uv run prepare.py`.
+4. **Verify data exists**: Check that `~/.cache/autoscale/` contains data shards and a tokenizer. If not, tell the human to run `uv run prepare.py`.
 5. **Initialize results.tsv**: Create `results.tsv` with just the header row. The baseline will be recorded after the first run.
 6. **Initialize metric.md**: If `metric.md` does not exist, create it with sections for metric definitions, per-run observations, and candidate next metrics. Leave it untracked by git, like `results.tsv`, so it survives discarded experiment commits.
    Use this skeleton:
@@ -144,7 +144,7 @@ d4e5f6g	0.000000	0.0	crash	double model width (OOM)
 
 ## The experiment loop
 
-The experiment runs on a dedicated branch (e.g. `autoresearch/mar5` or `autoresearch/mar5-gpu0`).
+The experiment runs on a dedicated branch (e.g. `autoscale/mar5` or `autoscale/mar5-gpu0`).
 
 LOOP FOREVER:
 
