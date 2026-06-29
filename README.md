@@ -73,11 +73,11 @@ pyproject.toml  — dependencies
 ## Design choices
 
 - **Single code file to modify.** The agent only changes code in `train.py`. This keeps the implementation scope manageable and diffs reviewable. The agent may also maintain untracked research notes in `metric.md` and `results.tsv`.
-- **Fixed time budget.** Training always runs for exactly 5 minutes, regardless of your specific platform. This means you can expect approx 12 experiments/hour and approx 100 experiments while you sleep. There are two upsides of this design decision. First, this makes experiments directly comparable regardless of what the agent changes (model size, batch size, architecture, etc). Second, this means that autoresearch will find the most optimal model for your platform in that time budget. The downside is that your runs (and results) become not comparable to other people running on other compute platforms.
+- **Fixed time budget.** Training always runs for exactly 5 minutes, regardless of your specific platform. This means you can expect approx 12 experiments/hour and approx 100 experiments while you sleep. There are two upsides of this design decision. First, this makes experiments directly comparable regardless of what the agent changes (model size, batch size, architecture, etc). Second, this means that autoscale will find the most optimal model for your platform in that time budget. The downside is that your runs (and results) become not comparable to other people running on other compute platforms.
 - **One ground-truth objective, many diagnostics.** The only score that decides keep/discard is final `val_bpb`. However, the agent is encouraged to invent cheap monitoring metrics in `train.py` and study them in `run.log` to understand why experiments succeed or fail.
 - **Self-contained.** No external dependencies beyond PyTorch and a few small packages. No distributed training, no complex configs. One GPU, one code file, one objective metric, and optional agent-created diagnostics.
 
-## Monitoring-driven autoresearch
+## Monitoring-driven autoscale
 
 The default training loop already prints progress information such as loss, learning-rate multiplier, step time, tokens/sec, MFU, epoch, and remaining time. A monitoring-driven agent can go further by adding its own compact diagnostics to `train.py`, for example:
 
@@ -104,7 +104,7 @@ After each experiment, the agent appends a short `metric.md` observation: final 
 
 This code currently requires that you have a single NVIDIA GPU. In principle it is quite possible to support CPU, MPS and other platforms but this would also bloat the code. I'm not 100% sure that I want to take this on personally right now. People can reference (or have their agents reference) the full/parent nanochat repository that has wider platform support and shows the various solutions (e.g. a Flash Attention 3 kernels fallback implementation, generic device support, autodetection, etc.), feel free to create forks or discussions for other platforms and I'm happy to link to them here in the README in some new notable forks section or etc.
 
-Seeing as there seems to be a lot of interest in tinkering with autoresearch on much smaller compute platforms than an H100, a few extra words. If you're going to try running autoresearch on smaller computers (Macbooks etc.), I'd recommend one of the forks below. On top of this, here are some recommendations for how to tune the defaults for much smaller models for aspiring forks:
+Seeing as there seems to be a lot of interest in tinkering with autoscale on much smaller compute platforms than an H100, a few extra words. If you're going to try running autoscale on smaller computers (Macbooks etc.), I'd recommend one of the forks below. On top of this, here are some recommendations for how to tune the defaults for much smaller models for aspiring forks:
 
 1. To get half-decent results I'd use a dataset with a lot less entropy, e.g. this [TinyStories dataset](https://huggingface.co/datasets/karpathy/tinystories-gpt4-clean). These are GPT-4 generated short stories. Because the data is a lot narrower in scope, you will see reasonable results with a lot smaller models (if you try to sample from them after training).
 2. You might experiment with decreasing `vocab_size`, e.g. from 8192 down to 4096, 2048, 1024, or even - simply byte-level tokenizer with 256 possibly bytes after utf-8 encoding.

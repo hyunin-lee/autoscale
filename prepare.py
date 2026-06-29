@@ -1,12 +1,12 @@
 """
-One-time data preparation for autoresearch experiments.
+One-time data preparation for autoscale experiments.
 Downloads data shards and trains a BPE tokenizer.
 
 Usage:
     python prepare.py                  # full prep (download + tokenizer)
     python prepare.py --num-shards 8   # download only 8 shards (for testing)
 
-Data and tokenizer are stored in ~/.cache/autoresearch/.
+Data and tokenizer are stored in ~/.cache/autoscale/.
 """
 
 import os
@@ -35,7 +35,7 @@ EVAL_TOKENS = 40 * 524288  # number of tokens for val eval
 # Configuration
 # ---------------------------------------------------------------------------
 
-CACHE_DIR = os.path.join(os.path.expanduser("~"), ".cache", "autoresearch")
+CACHE_DIR = os.path.join(os.path.expanduser("~"), ".cache", "autoscale")
 DATA_DIR = os.path.join(CACHE_DIR, "data")
 TOKENIZER_DIR = os.path.join(CACHE_DIR, "tokenizer")
 BASE_URL = "https://huggingface.co/datasets/karpathy/climbmix-400b-shuffle/resolve/main"
@@ -369,7 +369,7 @@ def evaluate_bpb(model, tokenizer, batch_size):
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Prepare data and tokenizer for autoresearch")
+    parser = argparse.ArgumentParser(description="Prepare data and tokenizer for autoscale")
     parser.add_argument("--num-shards", type=int, default=10, help="Number of training shards to download (-1 = all). Val shard is always pinned.")
     parser.add_argument("--download-workers", type=int, default=8, help="Number of parallel download workers")
     args = parser.parse_args()
