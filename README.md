@@ -1,4 +1,4 @@
-# autoresearch
+# autoscale
 
 ![teaser](progress.png)
 
