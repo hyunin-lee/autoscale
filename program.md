@@ -28,7 +28,7 @@ To set up a new experiment, work with the user to:
    <!-- For each metric: Name | Definition (formula/code) | Location in train.py | Why it helps reach lower val_bpb -->
 
    ## Per-run observations
-   <!-- One short entry per experiment: commit, val_bpb, status, what the metrics showed, what to try next -->
+   <!-- One short entry per experiment: commit, val_bpb, status, metrics tried this iteration, what they showed, what to try next -->
 
    ## Candidate / retired metrics
    <!-- Ideas not yet tried, and metrics removed for being noisy/useless (with the reason) -->
@@ -60,7 +60,7 @@ Each experiment runs on a single GPU. The training script runs for a **fixed tim
 
 ## Custom monitoring metrics
 
-In addition to optimizing the final `val_bpb`, you should actively improve your ability to understand training dynamics by creating custom monitoring metrics inside `train.py`. The purpose of these metrics is not to replace `val_bpb`; the goal is still to get the lowest final `val_bpb`. Monitoring metrics are diagnostic signals that help you choose better future edits to `train.py`.
+In addition to optimizing the final `val_bpb`, you should actively improve your ability to understand training dynamics by creating custom monitoring metrics inside `train.py`. The purpose of these metrics is not to replace `val_bpb`; the goal is still to get the lowest final `val_bpb`. Add or keep a monitoring metric only when it gives a useful perspective on the learning trajectory that can guide better future edits to `train.py` and help lower final `val_bpb`.
 
 You may edit the existing training-loop print line, add lightweight metric computations, and print additional compact diagnostic lines to `run.log`. You can use existing variables such as `loss`, `train_loss_f`, `debiased_smooth_loss`, `lrm`, `dt`, `tok_per_sec`, `mfu`, `progress`, `step`, `epoch`, optimizer param groups, model parameters, gradients, activations, logits, or any other values available in `train.py`. You may also define derived metrics, e.g. ratios, slopes, moving averages, normalized quantities, or products such as `val1**2 / (val2 + eps) * val3`.
 
@@ -71,7 +71,7 @@ When adding metrics:
 - Use `torch.no_grad()` and `.detach()` where appropriate.
 - Avoid changing the validation/evaluation harness. The final decision metric remains `evaluate_bpb` from `prepare.py`.
 - Keep the final summary lines unchanged, especially `val_bpb:` and `peak_vram_mb:`, because the experiment loop parses them.
-- Make log output easy to search. Prefer a stable prefix such as `mon |` for custom monitoring lines, or append compact fields to the existing progress print.
+- Make log output easy to search. Prefer appending cheap scalar metrics to the right side of the existing progress print after `remaining: {remaining:.0f}s`, e.g. `| grad_norm: ...`, or use a stable prefix such as `mon |` for separate custom monitoring lines.
 - If a metric is expensive, compute it every N steps instead of every step.
 
 Examples of useful metric families:
@@ -91,7 +91,7 @@ For every new metric you create, immediately update `metric.md` with:
 5. **Cost/risk** — expected overhead and any risk of perturbing training.
 6. **Interpretation plan** — what high/low/increasing/decreasing values suggest you might try next.
 
-After each experiment, read `run.log` and `metric.md`, then append a short observation to `metric.md`: which metrics were informative, which were noisy/useless, and what next code or hyperparameter change they suggest. You may remove or simplify useless metrics in later iterations, but record that decision in `metric.md`.
+After each experiment, read `run.log` and `metric.md`, then append one short per-experiment observation to `metric.md`. Include `metrics tried:` with every metric added, changed, removed, or intentionally kept for that iteration; write `metrics tried: none` if no monitoring metric changed. Then note which metrics were informative, which were noisy/useless, and what next code or hyperparameter change they suggest for lowering final `val_bpb`. You may remove or simplify useless metrics in later iterations, but record that decision in `metric.md`.
 
 ## Output format
 
@@ -150,7 +150,7 @@ LOOP FOREVER:
 
 1. Look at the git state: the current branch/commit we're on
 2. Read `metric.md` and the previous `results.tsv` entries to decide the next experimental change to `train.py` (optionally also which monitoring metrics to add/refine).
-3. Tune `train.py` with an experimental idea by directly hacking the code. Every non-baseline iteration must make a real `train.py` change (architecture, optimizer, hyperparameters, training loop, batch/model size, etc.); you may additionally add custom monitoring metrics and print output, as long as the final `val_bpb` optimization goal and fixed evaluation remain unchanged.
+3. Tune `train.py` with an experimental idea by directly modifying the code. Every non-baseline iteration must include a real change to `train.py` (architecture, optimizer, hyperparameters, training loop, batch/model size, etc.). You may also add custom monitoring metrics and print output to better understand training dynamics and guide better subsequent `train.py` changes, as long as the final `val_bpb` optimization goal and fixed evaluation remain unchanged.
 4. If you add, remove, or redefine monitoring metrics, update `metric.md` before running so the definitions match the code. Do not commit `metric.md`.
 5. git commit the `train.py` experiment
 6. Run the experiment: `uv run train.py > run.log 2>&1` (redirect everything — do NOT use tee or let output flood your context)
@@ -158,7 +158,7 @@ LOOP FOREVER:
 8. Read the custom monitoring output, e.g. `grep "mon |" run.log` if you used the recommended prefix, plus any relevant nearby training logs.
 9. If the final-result grep output is empty, the run crashed. Run `tail -n 50 run.log` to read the Python stack trace and attempt a fix. If you can't get things to work after more than a few attempts, give up.
 10. Record the result in `results.tsv` (NOTE: do not commit `results.tsv`; leave it untracked by git)
-11. Append a short post-run note to `metric.md`: final `val_bpb`, status, important metric observations, whether the metrics helped, and what they suggest for the next iteration. Do not commit `metric.md`.
+11. Append a short post-run note to `metric.md`: final `val_bpb`, status, `metrics tried:` for this exact iteration, important metric observations, whether the metrics helped understand the learning trajectory, and what they suggest for the next `train.py` edit toward lower final `val_bpb`. Do not replace this with a bulk sweep log; `metric.md` should have one note per experiment. Do not commit `metric.md`.
 12. If `val_bpb` improved (lower), you "advance" the branch, keeping the git commit
 13. If `val_bpb` is equal or worse, you git reset back to where you started. `metric.md` and `results.tsv` should remain as untracked research notes so you still remember what happened and can use the monitoring observations next.
 
