@@ -149,8 +149,8 @@ The experiment runs on a dedicated branch (e.g. `autoscale/mar5` or `autoscale/m
 LOOP FOREVER:
 
 1. Look at the git state: the current branch/commit we're on
-2. Read `metric.md` and the previous `results.tsv` entries. Decide whether the next iteration should change training behavior, add/remove/refine monitoring metrics, or do both.
-3. Tune `train.py` with an experimental idea by directly hacking the code. This can include adding custom monitoring metrics and print output, as long as the final `val_bpb` optimization goal and fixed evaluation remain unchanged.
+2. Read `metric.md` and the previous `results.tsv` entries to decide the next experimental change to `train.py` (optionally also which monitoring metrics to add/refine).
+3. Tune `train.py` with an experimental idea by directly hacking the code. Every non-baseline iteration must make a real `train.py` change (architecture, optimizer, hyperparameters, training loop, batch/model size, etc.); you may additionally add custom monitoring metrics and print output, as long as the final `val_bpb` optimization goal and fixed evaluation remain unchanged.
 4. If you add, remove, or redefine monitoring metrics, update `metric.md` before running so the definitions match the code. Do not commit `metric.md`.
 5. git commit the `train.py` experiment
 6. Run the experiment: `uv run train.py > run.log 2>&1` (redirect everything — do NOT use tee or let output flood your context)
