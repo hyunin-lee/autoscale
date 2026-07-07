@@ -4,7 +4,7 @@
 
 *One day, frontier AI research used to be done by meat computers in between eating, sleeping, having other fun, and synchronizing once in a while using sound wave interconnect in the ritual of "group meeting". That era is long gone. Research is now entirely the domain of autonomous swarms of AI agents running across compute cluster megastructures in the skies. The agents claim that we are now in the 10,205th generation of the code base, in any case no one could tell if that's right or wrong as the "code" is now a self-modifying binary that has grown beyond human comprehension. This repo is the story of how it all began. -@karpathy, March 2026*.
 
-The idea: give an AI agent a small but real LLM training setup and let it experiment autonomously overnight. It modifies the code, trains for 5 minutes, checks if the result improved, keeps or discards, and repeats. In addition, the agent can instrument the training loop with its own lightweight monitoring metrics, study those signals in `run.log`, and record what it learned in `metric.md` so the next experiment is better informed. You wake up in the morning to a log of experiments, a monitoring notebook, and (hopefully) a better model. The training code here is a simplified single-GPU implementation of [nanochat](https://github.com/karpathy/nanochat). The core idea is that you're not touching any of the Python files like you normally would as a researcher. Instead, you are programming the `program.md` Markdown files that provide context to the AI agents and set up your autonomous research org. The default `program.md` in this repo is intentionally kept as a bare bones baseline, though it's obvious how one would iterate on it over time to find the "research org code" that achieves the fastest research progress, how you'd add more agents to the mix, etc. A bit more context on this project is here in this [tweet](https://x.com/karpathy/status/2029701092347630069) and [this tweet](https://x.com/karpathy/status/2031135152349524125).
+The idea: give an AI agent a small but real LLM training setup and let it experiment autonomously overnight. It modifies the code, trains for 5 minutes, checks if the result improved, keeps or discards, and repeats. In addition, the agent continually instruments the training loop with its own lightweight monitoring metrics, revising which metrics it tracks every iteration — adding ones that probe the current bottleneck and retiring ones whose question is answered — while studying those signals in `run.log` and recording what it learned in `metric.md` so the next experiment is better informed. You wake up in the morning to a log of experiments, a monitoring notebook, and (hopefully) a better model. The training code here is a simplified single-GPU implementation of [nanochat](https://github.com/karpathy/nanochat). The core idea is that you're not touching any of the Python files like you normally would as a researcher. Instead, you are programming the `program.md` Markdown files that provide context to the AI agents and set up your autonomous research org. The default `program.md` in this repo is intentionally kept as a bare bones baseline, though it's obvious how one would iterate on it over time to find the "research org code" that achieves the fastest research progress, how you'd add more agents to the mix, etc. A bit more context on this project is here in this [tweet](https://x.com/karpathy/status/2029701092347630069) and [this tweet](https://x.com/karpathy/status/2031135152349524125).
 
 ## How it works
 
@@ -56,7 +56,7 @@ During setup and experimentation the agent will also create/use:
 - `metric.md` — untracked monitoring notebook created during setup, then updated with metric definitions and per-run observations.
 - `run.log` — output from the latest `uv run train.py` experiment, created during each training run.
 
-The agent should read both `results.tsv` and `metric.md` before each new experiment, then inspect `run.log` after the run. If a custom metric was useful, noisy, expensive, or misleading, that observation should be written back to `metric.md`.
+The agent reads both `results.tsv` and `metric.md` before each new experiment, then inspects `run.log` after the run. Curating the metric set is an active step in every iteration, not a one-time setup: the agent retires metrics that have gone flat or whose question is answered and adds new ones aimed at the current bottleneck, writing each such observation back to `metric.md`.
 
 ## Project structure
 
@@ -74,8 +74,8 @@ pyproject.toml  — dependencies
 
 - **Single code file to modify.** The agent only changes code in `train.py`. This keeps the implementation scope manageable and diffs reviewable. The agent may also maintain untracked research notes in `metric.md` and `results.tsv`.
 - **Fixed time budget.** Training always runs for exactly 5 minutes, regardless of your specific platform. This means you can expect approx 12 experiments/hour and approx 100 experiments while you sleep. There are two upsides of this design decision. First, this makes experiments directly comparable regardless of what the agent changes (model size, batch size, architecture, etc). Second, this means that autoscale will find the most optimal model for your platform in that time budget. The downside is that your runs (and results) become not comparable to other people running on other compute platforms.
-- **One ground-truth objective, many diagnostics.** The only score that decides keep/discard is final `val_bpb`. However, the agent is encouraged to invent cheap monitoring metrics in `train.py` and study them in `run.log` to understand why experiments succeed or fail.
-- **Self-contained.** No external dependencies beyond PyTorch and a few small packages. No distributed training, no complex configs. One GPU, one code file, one objective metric, and optional agent-created diagnostics.
+- **One ground-truth objective, many diagnostics.** The only score that decides keep/discard is final `val_bpb`. On top of that, the agent actively maintains a rotating set of cheap monitoring metrics in `train.py` — evolving them every iteration and studying them in `run.log` — to understand why experiments succeed or fail.
+- **Self-contained.** No external dependencies beyond PyTorch and a few small packages. No distributed training, no complex configs. One GPU, one code file, one objective metric, and an evolving set of agent-created diagnostics.
 
 ## Monitoring-driven autoscale
 
@@ -98,7 +98,7 @@ For every custom metric, the agent records in `metric.md`:
 5. its cost/risk
 6. how to interpret high/low/increasing/decreasing values
 
-After each experiment, the agent appends a short `metric.md` observation: final `val_bpb`, keep/discard/crash status, what the metrics showed, and what change they suggest next. This lets the agent build its own monitoring system over many iterations instead of relying only on the final validation number.
+After each experiment, the agent appends a short `metric.md` observation: final `val_bpb`, keep/discard/crash status, what the metrics showed, and what change they suggest next. Crucially, the metric set is not fixed at setup — the agent is expected to keep evolving it, retiring metrics that have become uninformative and adding new ones that probe the current open question, rather than watching the same handful of numbers passively for the whole run. This lets the agent build its own monitoring system over many iterations instead of relying only on the final validation number.
 
 ## Platform support
 
